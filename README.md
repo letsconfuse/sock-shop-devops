@@ -5,7 +5,7 @@
 ## Project Summary
 A full production-style deployment of the **Sock Shop** microservices application. This project demonstrates end-to-end DevOps practices including containerization, local orchestration, CI/CD, Kubernetes deployment, Infrastructure as Code (IaC), and Observability.
 
-## rchitecture
+## Architecture
 *(Architecture diagram will be added here)*
 
 ## ech Stack
