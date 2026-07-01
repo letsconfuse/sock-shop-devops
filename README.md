@@ -21,8 +21,25 @@ A full production-style deployment of the **Sock Shop** microservices applicatio
 | Monitoring | **Prometheus + Grafana** | Metrics collection and dashboards |
 | Testing in pipeline | **Playwright / Bruno** | Smoke tests run automatically post-deploy |
 
-## How to Run Locally
-*(Instructions will be updated as Phase 1 completes)*
+## 🚀 How to Run Locally
+
+You can spin up the entire microservices architecture locally using Docker Compose.
+
+1. Clone this repository and navigate to the project directory:
+   ```bash
+   git clone https://github.com/letsconfuse/sock-shop-devops.git
+   cd sock-shop-devops
+   ```
+2. Run the application:
+   ```bash
+   docker-compose -f docker/docker-compose.yml up -d
+   ```
+3. Access the front-end application in your browser at `http://localhost:8079`.
+
+To tear down the environment, run:
+```bash
+docker-compose -f docker/docker-compose.yml down
+```
 
 ## CI/CD Pipeline
 *(Pipeline diagram and flow will be added as Phase 2 completes)*
