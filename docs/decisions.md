@@ -43,3 +43,17 @@ This document records the reasoning behind technical choices made throughout the
 ### 3. GitOps-Style Pipeline Integration
 - **Decision**: The CD pipeline uses `kubectl apply -f` on the manifest directories, followed by a `kubectl set image` to force the newly built image SHA.
 - **Why**: Guarantees that what is defined in the repository exactly matches what is running in the cluster.
+
+## Phase 4: Infrastructure as Code (Terraform)
+
+### 1. Cloud Provider and Provisioning
+- **Decision**: Used AWS (EC2 `t2.micro` for free-tier eligibility) to act as the cloud Kubernetes node (via Minikube/Kind installed on user-data bootstrap).
+- **Why**: Shows understanding of cloud VMs, security groups, and bootstrapping scripts (`user_data`) without accruing cloud costs.
+
+### 2. Remote State Management
+- **Decision**: Configured the Terraform backend to use an S3 bucket (`sock-shop-terraform-state-bucket`) with DynamoDB state locking.
+- **Why**: Remote state is mandatory for team environments. It prevents state corruption and concurrent runs from breaking infrastructure.
+
+### 3. CI/CD Pipeline for Infrastructure
+- **Decision**: Created a dedicated `.github/workflows/terraform.yml`.
+- **Why**: Infrastructure changes should go through the same code review process as application code. The pipeline runs `terraform plan` on PRs (to review changes) and `terraform apply` only when merged to `main`.
