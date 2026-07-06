@@ -41,8 +41,22 @@ To tear down the environment, run:
 docker-compose -f docker/docker-compose.yml down
 ```
 
-## CI/CD Pipeline
-*(Pipeline diagram and flow will be added as Phase 2 completes)*
+## 🔄 CI/CD Pipeline
+
+The project utilizes GitHub Actions for continuous integration and continuous deployment, separated into two workflows:
+
+1. **Pull Request Pipeline (`ci.yml`)**:
+   - Triggers on PRs to `main`.
+   - Lints YAML and Dockerfiles (using `yamllint` and `hadolint`).
+   - Builds the custom `front-end` image.
+   - Spins up the entire application locally using `docker-compose`.
+   - Runs automated Bruno API smoke tests against the ephemeral environment.
+
+2. **Deployment Pipeline (`cd.yml`)**:
+   - Triggers on merges to `main`.
+   - Runs the same lint, build, and test steps as the CI pipeline.
+   - Upon successful testing, securely authenticates with Docker Hub using GitHub Secrets.
+   - Pushes the new Docker image tagged with the Git SHA and `latest`.
 
 ## Monitoring
 *(Grafana screenshots and metrics will be added in Phase 5)*
