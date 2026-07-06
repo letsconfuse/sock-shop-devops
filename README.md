@@ -1,70 +1,108 @@
-# DevOps Portfolio Project — Sock Shop Full Deployment
+# Cloud-Native Sock Shop: End-to-End DevOps Deployment
+
+[![CI Pipeline](https://img.shields.io/badge/CI%20Pipeline-GitHub%20Actions-blue?logo=github-actions)](.github/workflows/ci.yml)
+[![Infrastructure](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform)](terraform/main.tf)
+[![Orchestration](https://img.shields.io/badge/Orchestration-Kubernetes-326CE5?logo=kubernetes)](kubernetes/)
+[![Observability](https://img.shields.io/badge/Monitoring-Prometheus%20%7C%20Grafana-orange?logo=grafana)](monitoring/)
 
 > GitHub: [github.com/letsconfuse](https://github.com/letsconfuse)
 
-## Project Summary
-A full production-style deployment of the **Sock Shop** microservices application. This project demonstrates end-to-end DevOps practices including containerization, local orchestration, CI/CD, Kubernetes deployment, Infrastructure as Code (IaC), and Observability.
+A production-grade, end-to-end DevOps deployment of the **Weaveworks Sock Shop** microservices architecture. This project serves as a comprehensive portfolio piece demonstrating modern Cloud-Native practices: from containerization and local orchestration to automated CI/CD, GitOps-style Kubernetes deployments, Infrastructure as Code (AWS), and a full Observability stack.
 
-## Architecture
-*(Architecture diagram will be added here)*
+---
 
-## ech Stack
+## System Architecture
 
-| Area | Tool | Why |
+```mermaid
+graph TD
+    User([User]) -->|HTTP 80| Ingress[K8s Ingress]
+    Ingress --> FrontEnd[Front-End Service]
+    
+    subgraph K8s Cluster [Kubernetes Cluster / Docker Compose]
+      FrontEnd --> Catalogue[Catalogue API]
+      FrontEnd --> Carts[Carts API]
+      FrontEnd --> Orders[Orders API]
+      FrontEnd --> UserSvc[User API]
+      
+      Catalogue --> CatDB[(MySQL)]
+      Carts --> CartsDB[(MongoDB)]
+      Orders --> OrdersDB[(MongoDB)]
+      Orders --> RabbitMQ[RabbitMQ]
+      UserSvc --> UserDB[(MongoDB)]
+      
+      Shipping[Shipping API] --> RabbitMQ
+      Payment[Payment API]
+    end
+
+    subgraph Observability Stack
+      Prometheus[Prometheus] -.->|Scrapes| FrontEnd
+      Prometheus -.->|Scrapes| Catalogue
+      Prometheus -.->|Scrapes| Orders
+      Grafana[Grafana Dashboards] -->|Queries| Prometheus
+    end
+```
+
+---
+
+## Technology Stack
+
+| Domain | Technology | Implementation Details |
 |---|---|---|
-| Containerization | **Docker** | Package each service into an image |
-| Local orchestration | **Docker Compose** | Run all services together locally |
-| CI/CD | **GitHub Actions** | Automate build, test, and deploy on every push |
-| Container registry | **Docker Hub** | Store and version built images |
-| Orchestration | **Kubernetes (Minikube → Kind → Cloud)** | Production-style container management |
-| IaC | **Terraform** | Provision cloud infrastructure as code |
-| Monitoring | **Prometheus + Grafana** | Metrics collection and dashboards |
-| Testing in pipeline | **Playwright / Bruno** | Smoke tests run automatically post-deploy |
+| **Containerization** | Docker | Multi-stage builds, non-root users (`appuser`) for security. |
+| **Local Environment** | Docker Compose | Custom `docker-compose.yml` networking 13+ microservices. |
+| **CI/CD Pipelines** | GitHub Actions | Automated Linting (`hadolint`, `yamllint`), Testing, and Docker pushes. |
+| **Orchestration** | Kubernetes | Deployments (`RollingUpdate`), Services, Ingress, Secrets, ConfigMaps. |
+| **Infra as Code (IaC)** | Terraform | AWS EC2 provisioning with S3 Remote State backend. |
+| **Automated Testing** | Bruno / Playwright | API Smoke tests run automatically as a pre-deployment gate. |
+| **Observability** | Prometheus & Grafana | Custom SLI alerts (`FrontEndDown`) and auto-provisioned dashboards. |
 
-## 🚀 How to Run Locally
+---
 
-You can spin up the entire microservices architecture locally using Docker Compose.
+## How to Run Locally
 
-1. Clone this repository and navigate to the project directory:
+You can spin up the entire microservice ecosystem and the observability stack on your local machine using Docker Compose.
+
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/letsconfuse/sock-shop-devops.git
    cd sock-shop-devops
    ```
-2. Run the application:
+2. **Start the application**:
    ```bash
    docker-compose -f docker/docker-compose.yml up -d
    ```
-3. Access the front-end application in your browser at `http://localhost:8079`.
+3. **Access the Application & Tools**:
+   - **Storefront**: `http://localhost:8079`
+   - **Grafana Dashboard**: `http://localhost:3000` (Pre-configured)
+   - **Prometheus**: `http://localhost:9090`
 
-To tear down the environment, run:
-```bash
-docker-compose -f docker/docker-compose.yml down
-```
+*To tear down the environment:* `docker-compose -f docker/docker-compose.yml down`
 
-## 🔄 CI/CD Pipeline
+---
 
-The project utilizes GitHub Actions for continuous integration and continuous deployment, separated into two workflows:
+## CI/CD & Delivery Flow
 
-1. **Pull Request Pipeline (`ci.yml`)**:
-   - Triggers on PRs to `main`.
-   - Lints YAML and Dockerfiles (using `yamllint` and `hadolint`).
-   - Builds the custom `front-end` image.
-   - Spins up the entire application locally using `docker-compose`.
-   - Runs automated Bruno API smoke tests against the ephemeral environment.
+The project utilizes two distinct GitHub Actions workflows to ensure code quality and seamless delivery:
 
-2. **Deployment Pipeline (`cd.yml`)**:
-   - Triggers on merges to `main`.
-   - Runs the same lint, build, and test steps as the CI pipeline.
-   - Upon successful testing, securely authenticates with Docker Hub using GitHub Secrets.
-   - Pushes the new Docker image tagged with the Git SHA and `latest`.
+1. **Continuous Integration (PRs to `main`)**
+   - Triggers `hadolint` for Dockerfiles and `yamllint` for manifests.
+   - Builds the custom `front-end` Docker image.
+   - Spins up ephemeral `docker-compose` containers and runs **Bruno API Smoke Tests**.
 
-## 📊 Monitoring & Observability
+2. **Continuous Deployment (Merges to `main`)**
+   - Repeats the CI checks to guarantee integrity.
+   - Securely pushes the image to Docker Hub tagged with the Git SHA.
+   - Injects the AWS `KUBE_CONFIG` via GitHub Secrets to trigger a GitOps-style `kubectl apply` and a zero-downtime Rolling Update to the cluster.
 
-The application is fully monitored using the Prometheus and Grafana stack.
-- **Prometheus**: Scrapes metrics from all 13+ microservices every 15 seconds. It includes active alerting rules (`FrontEndDown`, `HighErrorRate`) via PromQL.
-- **Grafana**: Automatically provisioned with Prometheus as the default data source. A pre-built "Sock Shop Observability Dashboard" is loaded on startup, displaying realtime container health, uptime, and HTTP error rates. 
+---
 
-When running locally via `docker-compose`, access Grafana at `http://localhost:3000`.
+## Infrastructure & Kubernetes
 
-## What I Learned
-*(Ongoing reflections and learning outcomes will be documented here)*
+- **Terraform (`terraform/`)**: Fully automates the provisioning of the underlying AWS infrastructure. Uses an S3 bucket with DynamoDB state locking to simulate a team environment safely. 
+- **Kubernetes (`kubernetes/`)**: Core application components are mapped to dedicated manifests. Sensitive data like database credentials are decoupled using Kubernetes `Secret` resources, while environment variables are passed via `ConfigMap`.
+
+---
+
+## Architectural Decisions & Learnings
+
+To see a detailed log of *why* certain technical choices were made (e.g., why CI and CD are separated, or why the front-end Dockerfile was rewritten from scratch), please read the **[Decision Log (docs/decisions.md)](docs/decisions.md)**.
