@@ -34,8 +34,19 @@ jobs:
           helm lint opentelemetry-demo --values platform/helm/values.yaml
           helm template astronomy-shop opentelemetry-demo --namespace astronomy-shop --values platform/helm/values.yaml > rendered.yaml
 
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar -xz
+          sudo mv kubeconform /usr/local/bin/
+
       - name: Validate rendered Kubernetes resources
-        run: kubectl apply --dry-run=client --validate=true -f rendered.yaml
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            rendered.yaml
 
       - name: Scan platform configuration
         uses: aquasecurity/trivy-action@v0.36.0
