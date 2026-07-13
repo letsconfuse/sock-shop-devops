@@ -1,0 +1,23 @@
+# Platform-owned values for the upstream OpenTelemetry Astronomy Shop chart.
+# Chart version is intentionally pinned in versions.env.
+default:
+  envOverrides:
+    - name: OTEL_SERVICE_NAME
+      value: astronomy-shop
+
+# Keep the public entry point local-only. `ClusterIP` is the chart default, but
+# it is explicit here because access should be through `make port-forward`.
+components:
+  frontend-proxy:
+    service:
+      type: ClusterIP
+
+# Small local default; increase kind node resources if pods remain Pending.
+opentelemetry-collector:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

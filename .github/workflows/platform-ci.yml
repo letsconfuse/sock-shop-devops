@@ -1,0 +1,52 @@
+name: Platform CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Render and validate platform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add official OpenTelemetry chart repository
+        run: |
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo update
+
+      - name: Render pinned chart
+        run: |
+          source platform/helm/versions.env
+          helm pull open-telemetry/opentelemetry-demo --version "$OTEL_DEMO_CHART_VERSION" --untar
+          helm lint opentelemetry-demo --values platform/helm/values.yaml
+          helm template astronomy-shop opentelemetry-demo --namespace astronomy-shop --values platform/helm/values.yaml > rendered.yaml
+
+      - name: Validate rendered Kubernetes resources
+        run: docker run --rm -v "$PWD:/work" garethr/kubeval:0.16.1 /work/rendered.yaml
+
+      - name: Scan platform configuration
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          scan-type: config
+          scan-ref: platform
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Generate platform SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          artifact-name: platform-sbom.spdx.json
