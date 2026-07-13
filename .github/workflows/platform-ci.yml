@@ -38,7 +38,7 @@ jobs:
         run: docker run --rm -v "$PWD:/work" garethr/kubeval:0.16.1 /work/rendered.yaml
 
       - name: Scan platform configuration
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: platform
