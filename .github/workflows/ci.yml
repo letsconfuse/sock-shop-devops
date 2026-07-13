@@ -1,6 +1,7 @@
+---
 name: CI Pipeline
 
-on:
+"on":
   pull_request:
     branches:
       - main
@@ -36,7 +37,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build custom front-end image
-        run: docker build -t sock-shop/front-end:test -f docker/dockerfiles/front-end.Dockerfile .
+        run: |
+          docker build \
+            -t sock-shop/front-end:test \
+            -f docker/dockerfiles/front-end.Dockerfile .
 
       - name: Spin up application
         run: |
@@ -47,7 +51,7 @@ jobs:
       - name: Run Smoke Tests (Bruno/Playwright)
         run: |
           echo "Running API smoke tests against http://localhost:8079..."
-          # Mocking the test run. In reality: 
+          # Mocking the test run. In reality:
           # npm install -g @usebruno/cli && bru run tests/smoke
           echo "All tests passed successfully!"
 

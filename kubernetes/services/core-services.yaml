@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,8 +10,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 80
-    targetPort: 8079
+    - port: 80
+      targetPort: 8079
   selector:
     component: front-end
 ---
@@ -24,8 +25,8 @@ metadata:
     component: catalogue
 spec:
   ports:
-  - port: 80
-    targetPort: 80
+    - port: 80
+      targetPort: 80
   selector:
     component: catalogue
 ---
@@ -39,7 +40,7 @@ metadata:
     component: catalogue-db
 spec:
   ports:
-  - port: 3306
-    targetPort: 3306
+    - port: 3306
+      targetPort: 3306
   selector:
     component: catalogue-db

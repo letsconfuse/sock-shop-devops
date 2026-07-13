@@ -1,0 +1,573 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sock-shop
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sock-shop-pdb
+  namespace: sock-shop
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sock-shop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: front-end
+  namespace: sock-shop
+  labels:
+    app: sock-shop
+    component: front-end
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      component: front-end
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: front-end
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: component
+                      operator: In
+                      values:
+                        - front-end
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: front-end
+          image: weaveworksdemos/front-end:0.3.12
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8079
+              name: http
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: node-env
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8079
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8079
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: catalogue
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: catalogue
+    spec:
+      containers:
+        - name: catalogue
+          image: weaveworksdemos/catalogue:0.3.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue-db
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: catalogue-db
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: catalogue-db
+    spec:
+      containers:
+        - name: catalogue-db
+          image: weaveworksdemos/catalogue-db:0.3.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: socks
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -u
+                - root
+                - -p${MYSQL_ROOT_PASSWORD}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -u
+                - root
+                - -p${MYSQL_ROOT_PASSWORD}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carts
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: carts
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: carts
+    spec:
+      containers:
+        - name: carts
+          image: weaveworksdemos/carts:0.4.8
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carts-db
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: carts-db
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: carts-db
+    spec:
+      containers:
+        - name: carts-db
+          image: mongo:4.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: orders
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: orders
+    spec:
+      containers:
+        - name: orders
+          image: weaveworksdemos/orders:0.4.7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-db
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: orders-db
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: orders-db
+    spec:
+      containers:
+        - name: orders-db
+          image: mongo:4.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: payment
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: payment
+    spec:
+      containers:
+        - name: payment
+          image: weaveworksdemos/payment:0.4.3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: shipping
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: shipping
+    spec:
+      containers:
+        - name: shipping
+          image: weaveworksdemos/shipping:0.4.8
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: user
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: user
+    spec:
+      containers:
+        - name: user
+          image: weaveworksdemos/user:0.4.7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-db
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: user-db
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: user-db
+    spec:
+      containers:
+        - name: user-db
+          image: weaveworksdemos/user-db:0.4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queue-master
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: queue-master
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: queue-master
+    spec:
+      containers:
+        - name: queue-master
+          image: weaveworksdemos/queue-master:0.3.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: sock-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: sock-shop
+        component: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.8-management
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

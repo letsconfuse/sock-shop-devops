@@ -1,14 +1,15 @@
+---
 name: Terraform Infrastructure Pipeline
 
-on:
+"on":
   push:
     paths:
-      - 'terraform/**'
+      - "terraform/**"
     branches:
       - main
   pull_request:
     paths:
-      - 'terraform/**'
+      - "terraform/**"
 
 jobs:
   terraform:

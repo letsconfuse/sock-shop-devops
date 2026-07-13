@@ -1,6 +1,7 @@
+---
 name: CD Pipeline
 
-on:
+"on":
   push:
     branches:
       - main
@@ -24,7 +25,10 @@ jobs:
               truthy: disable
 
       - name: Build custom front-end image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }} -f docker/dockerfiles/front-end.Dockerfile .
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }} \
+            -f docker/dockerfiles/front-end.Dockerfile .
 
       - name: Spin up application
         run: |
@@ -50,11 +54,15 @@ jobs:
       - name: Push to Docker Hub
         if: success()
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }}
-          
+          docker push \
+            ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }}
+
           # Tag and push as latest
-          docker tag ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:latest
+          docker tag \
+            ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }} \
+            ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:latest
+          docker push \
+            ${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:latest
 
       - name: Deploy to Kubernetes Cluster
         if: success()
@@ -70,8 +78,10 @@ jobs:
           kubectl apply -f kubernetes/deployments/
           kubectl apply -f kubernetes/services/
           kubectl apply -f kubernetes/ingress/
-          
-          # Force a rollout of the new image
-          kubectl set image deployment/front-end front-end=${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }} -n sock-shop
-          kubectl rollout status deployment/front-end -n sock-shop
 
+          # Force a rollout of the new image
+          kubectl set image \
+            deployment/front-end \
+            front-end=${{ secrets.DOCKER_USERNAME }}/sock-shop-frontend:${{ github.sha }} \
+            -n sock-shop
+          kubectl rollout status deployment/front-end -n sock-shop

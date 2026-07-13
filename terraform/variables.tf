@@ -1,17 +1,24 @@
 variable "aws_region" {
-  description = "The AWS region to deploy resources in"
+  description = "AWS region"
   type        = string
   default     = "us-east-1"
 }
 
 variable "instance_type" {
-  description = "EC2 instance type for the Kubernetes node"
+  description = "EC2 instance type"
   type        = string
-  default     = "t2.micro" # Free tier eligible
+  default     = "t3.medium"
 }
 
 variable "key_name" {
-  description = "Name of the SSH key pair to access the instance"
+  description = "SSH key pair name"
   type        = string
-  default     = "sock-shop-key"
+  sensitive   = true
+}
+
+variable "allowed_ssh_cidrs" {
+  description = "CIDR blocks allowed for SSH access - set this to your IP for security"
+  type        = list(string)
+  default     = ["0.0.0.0/32"]
+  sensitive   = true
 }
