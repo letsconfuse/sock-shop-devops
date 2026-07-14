@@ -1,6 +1,6 @@
 # Astronomy Shop: Local DevSecOps Platform
 
-A cloud-free, interview-ready DevOps platform for the maintained [OpenTelemetry Astronomy Shop](https://github.com/open-telemetry/opentelemetry-demo). It deploys a realistic microservice application to a local **kind** Kubernetes cluster using the upstream OpenTelemetry Helm chart, with repeatable validation, security scanning, observability, and operational runbooks.
+A cloud-free, DevOps platform for the maintained [OpenTelemetry Astronomy Shop](https://github.com/open-telemetry/opentelemetry-demo). It deploys a realistic microservice application to a local **kind** Kubernetes cluster using the upstream OpenTelemetry Helm chart, with repeatable validation, security scanning, observability, and operational runbooks.
 
 > This repository manages the platform around the application. It deliberately does **not** fork or modify Astronomy Shop application source code.
 
