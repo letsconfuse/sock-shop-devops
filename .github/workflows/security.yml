@@ -4,7 +4,6 @@ name: Platform Security
 on:
   pull_request:
     branches: [main]
-
   push:
     branches: [main]
 
@@ -12,21 +11,54 @@ permissions:
   contents: read
 
 jobs:
-  security:
+  security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for Gitleaks to scan history
 
-      - name: Scan Platform Configuration
+      - name: Setup Helm
+        uses: ./.github/actions/setup-helm
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan IaC Configurations (Trivy)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: platform
           severity: HIGH,CRITICAL
           exit-code: "1"
+
+      - name: Render Helm Chart
+        uses: ./.github/actions/helm-render
+
+      - name: Scan Container Images (Trivy)
+        shell: bash
+        run: |
+          # Extract unique images from the rendered YAML
+          grep -oP 'image:\s*["'\'']?\K[^\s"'\''@]+' rendered.yaml | sort -u > images.txt
+          echo "Images found for scanning:"
+          cat images.txt
+          
+          # Install Trivy CLI locally for dynamic scanning
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          
+          # Scan each image. We use exit-code 0 to avoid blocking on third-party vulnerabilities,
+          # but we will log them all to the job output.
+          while read -r image; do
+            echo "=================================================="
+            echo "Scanning image: $image"
+            echo "=================================================="
+            trivy image --severity HIGH,CRITICAL --format table --exit-code 0 "$image"
+          done < images.txt
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
