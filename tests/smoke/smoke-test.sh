@@ -18,15 +18,23 @@ PORT_FORWARD_PID=$!
 # Give it a second to establish the connection
 sleep 5
 
-echo "Testing frontend HTTP response..."
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+echo "Testing frontend HTTP response (with retries for startup)..."
+MAX_RETRIES=15
+RETRY_COUNT=0
+HTTP_STATUS=0
 
-if [ "$HTTP_STATUS" -eq 200 ]; then
-    echo "✅ Smoke test passed! Frontend returned 200 OK."
-    kill $PORT_FORWARD_PID
-    exit 0
-else
-    echo "❌ Smoke test failed! Frontend returned HTTP $HTTP_STATUS."
-    kill $PORT_FORWARD_PID
-    exit 1
-fi
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+    if [ "$HTTP_STATUS" -eq 200 ]; then
+        echo "✅ Smoke test passed! Frontend returned 200 OK."
+        kill $PORT_FORWARD_PID
+        exit 0
+    fi
+    echo "Frontend returned HTTP $HTTP_STATUS (attempt $((RETRY_COUNT+1))/$MAX_RETRIES). Waiting..."
+    sleep 5
+    RETRY_COUNT=$((RETRY_COUNT+1))
+done
+
+echo "❌ Smoke test failed! Frontend returned HTTP $HTTP_STATUS after $MAX_RETRIES attempts."
+kill $PORT_FORWARD_PID
+exit 1
