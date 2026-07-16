@@ -5,7 +5,6 @@ on:
   pull_request:
     branches:
       - main
-
   push:
     branches:
       - main
@@ -14,59 +13,53 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Repository Quality Checks
+  yaml-lint:
+    name: YAML Lint
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - uses: ./.github/actions/setup-python
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
+      - name: Run yamllint
+        run: yamllint .
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
 
-      - name: Install Python Tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install yamllint
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Install Markdownlint
-        run: |
-          npm install -g markdownlint-cli
+      - uses: ./.github/actions/setup-node
+
+      - name: Run markdownlint
+        run: markdownlint .
+
+  actionlint:
+    name: GitHub Actions Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-go
+
+      - name: Run actionlint
+        run: actionlint
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install ShellCheck
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
-
-      - name: Install actionlint
-        run: |
-          go install github.com/rhysd/actionlint/cmd/actionlint@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Run yamllint
-        run: |
-          yamllint .
-
-      - name: Run markdownlint
-        run: |
-          markdownlint .
-
-      - name: Run actionlint
-        run: |
-          actionlint
 
       - name: Run ShellCheck
         run: |
