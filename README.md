@@ -13,17 +13,39 @@ A production-style DevOps platform built around the [OpenTelemetry Astronomy Sho
 
 ## Architecture
 
-![Architecture Overview](docs/architecture-overview.png)
-
 Every pull request triggers a multi-stage pipeline that validates configuration, scans for vulnerabilities, deploys to an ephemeral Kubernetes cluster, and runs smoke tests against the live application -- all before code reaches the main branch.
 
-```text
-Developer --> Pull Request --> [Validate] --> [Security Scan] --> [Ephemeral Deploy] --> [Smoke Test] --> Merge
-                                   |               |                     |                    |
-                              Helm lint       Gitleaks            Kind cluster          HTTP 200 OK
-                              kubeconform     Trivy IaC           Helm install          against frontend
-                                              Trivy Image         15+ services
-                                              SBOM (Syft)
+### CI Pipeline
+
+```mermaid
+flowchart LR
+  Dev[Developer] -->|push| PR[Pull Request]
+  PR --> V[validate.yml]
+  PR --> S[security.yml]
+  PR --> D[deploy-preview.yml]
+
+  V -->|Helm lint, template| KC[kubeconform]
+  S -->|Gitleaks, Trivy| SBOM[SBOM generation]
+  D -->|Kind cluster up| Deploy[Helm install]
+  Deploy --> Smoke[Smoke test]
+  Smoke -->|tear down| Done[Merge ready]
+```
+
+### Runtime
+
+```mermaid
+flowchart LR
+  User[Local machine] -->|make up| Kind[Kind cluster]
+  Kind --> NS[astronomy-shop namespace]
+  NS --> FP[Frontend Proxy]
+  NS --> Frontend[Frontend]
+  NS --> Cart[Cart Service]
+  NS --> Checkout[Checkout Service]
+  NS --> Other[14+ other services]
+  NS --> Collector[OpenTelemetry Collector]
+  Collector --> Prom[Prometheus]
+  Collector --> Jaeger[Jaeger]
+  Prom --> Grafana[Grafana]
 ```
 
 ---
