@@ -1,0 +1,8 @@
+---
+name: Setup Helm
+description: Install Helm
+
+runs:
+  using: composite
+  steps:
+    - uses: azure/setup-helm@v4
