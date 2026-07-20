@@ -95,12 +95,24 @@ pip
 
 ---
 
+## 2026-07-20
+
+### GitOps with Argo CD
+
+Completed:
+
+* Evaluated GitOps tools (Argo CD vs Flux CD) and detailed choices in ADR-0004.
+* Created declarative installer `platform/argocd/install-argocd.sh` to configure the namespace, pull stable manifests, wait for rollout, and bootstrap application.
+* Implemented multiple-source `platform/argocd/application.yaml` linking the official OpenTelemetry demo Helm repository to our local values file configuration.
+* Added `argocd-*` targets to Makefile for easy lifecycle management.
+
+Lesson learned:
+
+Using Argo CD's Multiple Sources feature is a powerful way to reference upstream Helm charts while maintaining custom value overrides in a separate Git repository, keeping the codebase clean and eliminating local wrapper charts.
+
+---
+
 ## Next Objective
 
-Push the CI refactor.
+Push the `feature/phase4-gitops` branch, run validation and security checks, and merge the Pull Request.
 
-Review GitHub Actions.
-
-Fix failures.
-
-Merge the Pull Request.

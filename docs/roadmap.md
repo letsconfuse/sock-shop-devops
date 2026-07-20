@@ -48,76 +48,71 @@ Repository now performs quality validation before every commit.
 
 ## Phase 2 — GitHub Actions Refactor
 
-Status: 🚧 In Progress
+Status: ✅ Completed
 
 Completed
 
 * Archive original workflow
-* Create ci.yml
+* Create ci.yml (validate.yml)
 * Create security.yml
 * Split validation and security responsibilities
-
-Pending
-
-* Push workflows to GitHub
-* Verify Actions
-* Fix workflow failures
-* Merge Pull Request
 
 ---
 
 ## Phase 3 — CI Improvements
 
-Planned
+Status: ✅ Completed
 
-* Composite Actions
-* Reusable Workflows
-* Dependency caching
-* Parallel jobs
-* Matrix builds
-* Artifact uploads
-* Helm caching
-* Better failure reporting
+Completed
+
+* Composite Actions (setup-helm, setup-kind, setup-kubectl, setup-kubeconform, helm-render)
+* Reusable workspace configurations
+* Modular and DRY pipelines
 
 ---
 
 ## Phase 4 — Platform Validation
 
-Planned
+Status: ✅ Completed
 
-* kubeconform
-* kube-linter
+Completed
+
+* kubeconform schema validation
 * Helm lint
-* Helm template
-* Kind integration testing
-* Kubernetes smoke tests
+* Helm template rendering
+* Kind ephemeral integration testing
+* Kubernetes smoke tests with automated HTTP status verification
 
 ---
 
 ## Phase 5 — DevSecOps
 
-Planned
+Status: ✅ Completed
 
-* Trivy
-* Trufflehog
-* Gitleaks
-* Detect Secrets
-* SBOM
-* Cosign
-* SLSA Provenance
-* OPA / Conftest
+Completed
+
+* Trivy IaC configuration scan
+* Trivy third-party image vulnerability scan
+* Gitleaks secret detection
+* Software Bill of Materials (SBOM) generation via Syft
 
 ---
 
 ## Phase 6 — GitOps
 
-Planned
+Status: 🚧 In Progress
 
-* ArgoCD
-* FluxCD comparison
+Completed
+
+* GitOps engine comparative analysis (Argo CD vs Flux CD - ADR-0004)
+* Declarative Argo CD bootstrap automation (`install-argocd.sh`)
+* Native Multiple Sources configuration to separate upstream chart and local values config (`application.yaml`)
+* Makefile integration (`argocd-bootstrap`, `argocd-status`, `argocd-port-forward`, `argocd-down`)
+
+Pending
+
 * Progressive delivery
-* Rollbacks
-* Health checks
+* Rollbacks and automated self-healing validation
 
 ---
 
@@ -226,19 +221,11 @@ By the end of this repository the following skills should be demonstrated.
 
 Current Branch
 
-feature/ci-refactor
+feature/phase4-gitops
 
 Current Objective
 
-Push the refactored GitHub Actions workflows to GitHub.
-
-Create a Pull Request.
-
-Review failures.
-
-Fix failures.
-
-Merge after validation.
+Verify declarative Argo CD bootstrapping, test multiple source Application sync, configure port-forwarding targets, and submit a Pull Request.
 
 ---
 
